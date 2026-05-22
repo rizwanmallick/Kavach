@@ -171,29 +171,50 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      console.warn('Supabase signOut error (ignored):', err);
-    } finally {
-      // Wiping Supabase tokens from localStorage to prevent auth persistence on redirect
-      try {
-        const keysToRemove: string[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.startsWith("sb-") || key.includes("supabase") || key.includes("auth-token"))) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
-      } catch (e) {
-        console.warn("Failed to manually clear auth localStorage keys:", e);
-      }
+    // 1. Immediately wipe React state so the UI reflects logged-out state instantly
+    setUser(null);
+    setProfile(null);
+    setSeenDialogues(new Set());
+    setIsLoading(false);
 
-      setUser(null);
-      setProfile(null);
-      setSeenDialogues(new Set());
-      setIsLoading(false);
+    // 2. Wipe storage keys immediately
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith("sb-") || key.includes("supabase") || key.includes("auth-token"))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+    } catch (e) {
+      console.warn("Failed to manually clear auth localStorage keys:", e);
+    }
+
+    try {
+      sessionStorage.clear();
+    } catch (e) {}
+
+    // 3. Clear cookies
+    try {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i];
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substring(0, eqPos).trim() : cookie.trim();
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+        document.cookie = name + `=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+      }
+    } catch (e) {}
+
+    // 4. Trigger signOut in background with a timeout fallback (non-blocking)
+    try {
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Signout timed out")), 800)
+      );
+      await Promise.race([supabase.auth.signOut(), timeoutPromise]);
+    } catch (err) {
+      console.warn('Supabase signOut error/timeout (ignored):', err);
     }
   };
 
