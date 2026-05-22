@@ -64,19 +64,6 @@ export default function CrackTheVault() {
     }
   }, [isLoading, user, router]);
 
-  // Avoid rendering a partially-initialized screen before auth/profile is ready.
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-dark flex items-center justify-center">
-        <div className="text-center space-y-4 font-mono">
-          <div className="w-16 h-16 border-t-2 border-b-2 border-cyan-500 rounded-full animate-spin mx-auto" />
-          <div className="text-cyan-500 tracking-[0.3em] uppercase text-xs animate-pulse">
-            Establishing Secure Link...
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Show first-time tour if user hasn't completed it
   useEffect(() => {
@@ -391,6 +378,20 @@ export default function CrackTheVault() {
       setCypherMessage(null);
     }
   }, [password]);
+
+  // Avoid rendering a partially-initialized screen before auth/profile is ready.
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-dark flex items-center justify-center">
+        <div className="text-center space-y-4 font-mono">
+          <div className="w-16 h-16 border-t-2 border-b-2 border-cyan-500 rounded-full animate-spin mx-auto" />
+          <div className="text-cyan-500 tracking-[0.3em] uppercase text-xs animate-pulse">
+            Establishing Secure Link...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Only trigger voice/cypher dialogue on explicit check
   const handleCheckPassword = () => {

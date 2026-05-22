@@ -121,23 +121,27 @@ export function TerminalVault({ onComplete, onDialogue }: TerminalVaultProps) {
     
     // Simulating generated wordlist combinations based on OSINT
     const targetPw = currentScenario?.correct_password || "Buster1985";
-    const wordlistGuesses = [
+    const baseGuesses = [
       "admin123", "password", "security", "123456", 
-      ...(currentScenario?.vulnerabilities || ["Buster", "1985", "Lakers"]).map(v => `${v}123`),
-      ...(currentScenario?.vulnerabilities || ["Buster", "1985", "Lakers"]).map(v => `${v}${targetPw.slice(-2)}`),
-      targetPw
-    ].sort(() => Math.random() - 0.5);
+      ...(currentScenario?.vulnerabilities || ["Buster", "1985", "Lakers"]).map((v: string) => `${v}123`),
+      ...(currentScenario?.vulnerabilities || ["Buster", "1985", "Lakers"]).map((v: string) => `${v}${targetPw.slice(-2)}`)
+    ];
 
-    // Make sure the target is near the end for dramatic effect
-    const finalGuesses = wordlistGuesses.filter(g => g !== targetPw).slice(0, 15);
+    // Filter out the actual correct password from random guesses so it never shows as [FAIL]
+    const wordlistGuesses = baseGuesses
+      .filter(g => g.toLowerCase() !== targetPw.toLowerCase())
+      .sort(() => Math.random() - 0.5);
+
+    // Make sure the target is near the end for dramatic effect (max 15 fails)
+    const finalGuesses = wordlistGuesses.slice(0, 15);
     finalGuesses.push(targetPw);
 
     let attempts = 0;
     // We want the match to hit roughly when Cypher says "There... match found" 
     // which is about 6 seconds into brute-force audio.
     const interval = setInterval(() => {
-      if (attempts < wordlistGuesses.length) {
-        const guess = wordlistGuesses[attempts];
+      if (attempts < finalGuesses.length - 1) {
+        const guess = finalGuesses[attempts];
         setHistory(prev => [...prev, `<span class='text-red-400'>[FAIL] Testing password: ${guess}... Denied</span>`]);
         attempts++;
       } else {

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Home, BookOpen, Trophy, User } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import { useUser } from "@/context/user-context";
 
 export const Navigation = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, profile, logout } = useUser();
   
   const isActive = (path: string) => pathname === path;

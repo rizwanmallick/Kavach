@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { UserProvider } from "@/context/user-context";
 import { BootWrapper } from "@/components/BootWrapper";
+import { InactivityHandler } from "@/components/InactivityHandler";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <UserProvider>
+          <InactivityHandler />
           <Providers>
             <BootWrapper>{children}</BootWrapper>
           </Providers>

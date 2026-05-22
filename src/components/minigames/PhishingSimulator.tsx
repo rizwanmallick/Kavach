@@ -116,7 +116,7 @@ export function PhishingSimulator({ onComplete, scenarios }: PhishingSimulatorPr
 
   const highlightSentiment = () => {
     if (activeTool === "sentiment") {
-      handleInspect("sentiment", "body");
+      handleInspect("body");
     }
   };
 

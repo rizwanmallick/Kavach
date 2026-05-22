@@ -20,6 +20,8 @@ interface UserContextType {
   setHasBooted: (val: boolean) => void;
   seenDialogues: Set<string>;
   markDialogueSeen: (id: string) => void;
+  activeHoverTour: string | null;
+  setActiveHoverTour: (val: string | null) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -35,14 +37,48 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Fetch profile from Supabase
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await (supabase as any)
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    try {
+      const { data, error } = await (supabase as any)
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
 
-    if (!error && data) {
-      setProfile(data as Profile);
+      if (!error && data) {
+        setProfile(data as Profile);
+      } else {
+        console.warn("[User Context] Profile not found or failed to load. Attempting to create fallback profile...", error);
+        
+        // Get user metadata to extract the username entered during sign up
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          const username = authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'Agent';
+          
+          console.log("[User Context] Creating profile row for:", authUser.id, "with username:", username);
+          const { data: newProfile, error: createError } = await (supabase as any)
+            .from("profiles")
+            .insert({
+              id: authUser.id,
+              username: username,
+              avatar: 'male',
+              score: 0,
+              level: 1,
+              xp: 0,
+              tour_completed: false
+            })
+            .select()
+            .single();
+
+          if (!createError && newProfile) {
+            setProfile(newProfile as Profile);
+            console.log("[User Context] Fallback profile created successfully.");
+          } else {
+            console.error("[User Context] Fallback profile creation failed:", createError);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[User Context] Error during fetchProfile fallback flow:", err);
     }
   };
 
@@ -56,32 +92,51 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // On mount: check existing session
   useEffect(() => {
-    const initSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        await fetchProfile(session.user.id);
-        loadSeenDialogues(session.user.id);
-      }
+    // Safety net: never stay stuck on loading screen for more than 5 seconds
+    const loadingTimeout = setTimeout(() => {
       setIsLoading(false);
+    }, 5000);
+
+    const initSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUser(session.user);
+          await fetchProfile(session.user.id);
+          loadSeenDialogues(session.user.id);
+        }
+      } catch (err) {
+        console.warn("Supabase auth session lock error (ignored):", err);
+      } finally {
+        clearTimeout(loadingTimeout);
+        setIsLoading(false);
+      }
     };
 
     initSession();
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-        await fetchProfile(session.user.id);
-        loadSeenDialogues(session.user.id);
-      } else {
-        setUser(null);
-        setProfile(null);
-        setSeenDialogues(new Set());
+      try {
+        if (session?.user) {
+          setUser(session.user);
+          await fetchProfile(session.user.id);
+          loadSeenDialogues(session.user.id);
+        } else {
+          setUser(null);
+          setProfile(null);
+          setSeenDialogues(new Set());
+        }
+      } catch (err) {
+        console.warn("Supabase auth state change lock error (ignored):", err);
+        setIsLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(loadingTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
@@ -98,7 +153,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
-        data: { username } // passed to trigger via raw_user_meta_data
+        data: { username }, // passed to trigger via raw_user_meta_data
+        emailRedirectTo: `${window.location.origin}/auth?mode=confirm`
       }
     });
 
@@ -115,13 +171,37 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.warn('Supabase signOut error (ignored):', err);
+    } finally {
+      // Wiping Supabase tokens from localStorage to prevent auth persistence on redirect
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith("sb-") || key.includes("supabase") || key.includes("auth-token"))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+      } catch (e) {
+        console.warn("Failed to manually clear auth localStorage keys:", e);
+      }
+
+      setUser(null);
+      setProfile(null);
+      setSeenDialogues(new Set());
+      setIsLoading(false);
+    }
   };
 
   const updateScore = async (points: number, metadata?: { moduleId: number; moduleName: string; accuracy?: number }) => {
-    if (!user || !profile) return;
+    if (!user || !profile) {
+      console.warn("[XP Update] Cannot update score: user or profile is null", { user, profile });
+      return;
+    }
 
     // Use latest profile data to prevent stale state clobbering
     const { data: latestProfile } = await (supabase as any)
@@ -154,13 +234,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
       .select()
       .single();
 
-    if (!error && data) {
+    if (error) {
+      console.error("[XP Update] Error updating user profile:", error);
+    } else if (data) {
+      console.log("[XP Update] Profile updated successfully in Supabase:", data);
       setProfile(data as Profile);
     }
 
     // 2. Log to Gradebook (Student Submissions) - ONLY if metadata is provided (usually module completion)
     if (metadata) {
-      await (supabase as any)
+      const { error: insertError } = await (supabase as any)
         .from("student_submissions")
         .insert({
           user_id: user.id,
@@ -171,6 +254,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
           accuracy: metadata.accuracy || 100,
           completed_at: new Date().toISOString()
         });
+
+      if (insertError) {
+        console.error("[XP Update] Error logging student submission:", insertError);
+      } else {
+        console.log("[XP Update] Student submission logged successfully.");
+      }
     }
   };
 
