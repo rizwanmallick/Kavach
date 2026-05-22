@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS student_submissions (
 );
 
 -- 2. Create the Leaderboard View (Professor Friendly)
-CREATE OR REPLACE VIEW leaderboard_view AS
+CREATE OR REPLACE VIEW leaderboard_view 
+WITH (security_invoker = true) AS
 SELECT 
   username,
   level,
