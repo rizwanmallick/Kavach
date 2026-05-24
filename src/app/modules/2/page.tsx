@@ -195,7 +195,7 @@ export default function PhishingModule() {
     // Fetch fresh scenarios
     try {
       const { data } = await supabase.from('phishing_scenarios').select('*');
-      let pool = data && data.length > 0 ? data : FALLBACK_SCENARIOS;
+      const pool = data && data.length > 0 ? data : FALLBACK_SCENARIOS;
       const selection = [...pool].sort(() => Math.random() - 0.5).slice(0, 2);
       setScenarios(selection);
     } catch (err) {
