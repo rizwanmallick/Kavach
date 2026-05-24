@@ -137,7 +137,7 @@ export default function OperationIronWall() {
     return stats;
   }, [packets]);
 
-  const [guideMessage, setGuideMessage] = useState<{ text: string; type: "info" | "warning" | "success" | "tip"; audioFile?: string } | null>(null);
+  const [guideMessage, setGuideMessage] = useState<{ text: string; type: "info" | "warning" | "success" | "tip" } | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
 
   const idRef = useRef(1);
@@ -206,7 +206,7 @@ export default function OperationIronWall() {
         const now = Date.now();
         const minSpawnGapMs = inCrisis ? 350 : inSurge ? 500 : 700;
         if (now - lastSpawnAtRef.current > minSpawnGapMs) {
-          const packet = makePacket(idRef.current++, elapsed, botnetRef.current);
+          let packet = makePacket(idRef.current++, elapsed, botnetRef.current);
           lastSpawnAtRef.current = now;
           setPackets((prev) => [...prev.slice(-120), packet]);
         }
@@ -606,7 +606,7 @@ export default function OperationIronWall() {
                     <div className="flex-1">
                       <div className="flex justify-between text-[9px] mb-1">
                         <span className={sizeStats.large > 0 ? "text-rose-400 font-bold" : "text-slate-500"}>
-                          {sizeStats.large > 0 && "🔥 "}THREAT_LARGE (&gt;30kb)
+                          {sizeStats.large > 0 && "🔥 "}THREAT_LARGE (>30kb)
                         </span>
                         <span className={sizeStats.large > 0 ? "text-rose-500 font-black animate-pulse" : "text-slate-600"}>{sizeStats.large}</span>
                       </div>

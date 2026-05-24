@@ -26,7 +26,6 @@ import { supabase } from "@/lib/supabase";
 
 // High-fidelity fallback scenarios (No Dummy Data)
 const FALLBACK_SCENARIOS = [
-  // --- BEGINNER SCENARIOS (Obvious flaws, poor grammar, weird senders) ---
   {
     id: "1",
     type: "email" as const,
@@ -46,70 +45,6 @@ const FALLBACK_SCENARIOS = [
   },
   {
     id: "2",
-    type: "email" as const,
-    difficulty: "Beginner" as const,
-    brand: "Amazon",
-    sender: "orders-update@amozon-support.net",
-    subject: "Your order #114-5829102-1102 has been cancelled",
-    content: "<p>Hi Customer,</p><p>Your recent order has been cancelled due to a billing error. To restore your order and prevent account closure, kindly verify your identity.</p><p>Click here to login and verify.</p>",
-    url: "amazon.com/verify-account",
-    actual_link: "http://amozon-support.net/login",
-    red_flags: [
-      { tool: "sniffer" as const, location: "sender" as const, description: "Sender domain 'amozon-support.net' is a typo of amazon.com" },
-      { tool: "sentiment" as const, location: "body" as const, description: "Generic greeting 'Hi Customer' instead of your actual name." }
-    ],
-    is_real: false
-  },
-  {
-    id: "3",
-    type: "email" as const,
-    difficulty: "Beginner" as const,
-    brand: "PayPal",
-    sender: "service@intl.paypal.com",
-    subject: "Receipt for your payment to Target Corporation",
-    content: "<p>Hello,</p><p>You sent a payment of $499.99 USD to Target Corporation. If you did not authorize this transaction, please click the link below immediately to cancel the payment.</p>",
-    url: "paypal.com/dispute/transaction",
-    actual_link: "http://paypal-resolution-center.com/dispute",
-    red_flags: [
-      { tool: "sniffer" as const, location: "url" as const, description: "Actual destination 'paypal-resolution-center.com' is not the real paypal.com" },
-      { tool: "sentiment" as const, location: "body" as const, description: "Creates fake panic with a large unauthorized charge to force a quick click." }
-    ],
-    is_real: false
-  },
-  {
-    id: "4",
-    type: "website" as const,
-    difficulty: "Beginner" as const,
-    brand: "Facebook",
-    content: "<div style='text-align:center; padding: 40px; font-family: sans-serif;'><h1 style='color: #1877f2;'>facebook</h1><p>You must log in to view this content.</p><input type='text' placeholder='Email or Phone' style='display:block; margin: 10px auto; padding: 10px; width: 80%;' /><input type='password' placeholder='Password' style='display:block; margin: 10px auto; padding: 10px; width: 80%;' /><button style='background: #1877f2; color: white; border: none; padding: 10px 20px; width: 80%;'>Log In</button></div>",
-    url: "facebook-login-secure.com/auth",
-    actual_link: "http://facebook-login-secure.com/auth",
-    red_flags: [
-      { tool: "sniffer" as const, location: "url" as const, description: "Domain is 'facebook-login-secure.com', not 'facebook.com'." },
-      { tool: "ssl" as const, location: "url" as const, description: "Connection is HTTP, not secure HTTPS." }
-    ],
-    is_real: false
-  },
-  {
-    id: "5",
-    type: "email" as const,
-    difficulty: "Beginner" as const,
-    brand: "Apple",
-    sender: "appleid@apple-icloud-alert.com",
-    subject: "Your Apple ID has been locked.",
-    content: "<p>Dear Apple Customer,</p><p>Your Apple ID was recently used to log in to an iPhone 14 in Russia. For your security, your account is now locked.</p><p>Unlock your account below.</p>",
-    url: "apple.com/unlock",
-    actual_link: "http://apple-icloud-alert.com/unlock",
-    red_flags: [
-      { tool: "sniffer" as const, location: "sender" as const, description: "Sender domain 'apple-icloud-alert.com' is not official." },
-      { tool: "sentiment" as const, location: "body" as const, description: "Generic greeting and panic-inducing scenario (locked out, foreign country)." }
-    ],
-    is_real: false
-  },
-
-  // --- ANALYST SCENARIOS (More convincing, requires checking SSL or hidden links) ---
-  {
-    id: "6",
     type: "website" as const,
     difficulty: "Analyst" as const,
     brand: "Google",
@@ -117,31 +52,15 @@ const FALLBACK_SCENARIOS = [
     url: "accounts.google.verify-secure.cc/signin",
     actual_link: "https://google-login.verify-secure.cc/auth",
     red_flags: [
-      { tool: "sniffer" as const, location: "url" as const, description: "Root domain is verify-secure.cc, not google.com. (Subdomain spoofing)" },
-      { tool: "ssl" as const, location: "url" as const, description: "Certificate issued to 'Let's Encrypt', not Google LLC." }
+      { tool: "sniffer" as const, location: "url" as const, description: "Root domain is verify-secure.cc, not google.com." },
+      { tool: "ssl" as const, location: "url" as const, description: "Certificate issued to a different entity than Google LLC." }
     ],
     is_real: false
   },
   {
-    id: "7",
+    id: "3",
     type: "email" as const,
-    difficulty: "Analyst" as const,
-    brand: "IT Helpdesk",
-    sender: "it-support@company-portal.com",
-    subject: "REQUIRED: Migrate to new Email Server",
-    content: "<p>Hi Team,</p><p>IT is migrating all email accounts to the new Exchange 2026 server tonight. You must log in to the migration portal below to ensure your emails are transferred.</p><p>Failure to do so will result in lost emails.</p><p>- IT Admin</p>",
-    url: "portal.company.com/migrate",
-    actual_link: "https://company-portal.com/auth/migrate",
-    red_flags: [
-      { tool: "sniffer" as const, location: "sender" as const, description: "'company-portal.com' is often registered by attackers to mimic internal domains." },
-      { tool: "sentiment" as const, location: "body" as const, description: "Urgent deadline ('tonight') and threat of data loss." }
-    ],
-    is_real: false
-  },
-  {
-    id: "8",
-    type: "email" as const,
-    difficulty: "Analyst" as const,
+    difficulty: "Beginner" as const,
     brand: "LinkedIn",
     sender: "security-noreply@linkedin.com",
     subject: "Successful login from a new device",
@@ -156,7 +75,7 @@ const FALLBACK_SCENARIOS = [
     is_real: true
   },
   {
-    id: "9",
+    id: "4",
     type: "website" as const,
     difficulty: "Analyst" as const,
     brand: "Microsoft",
@@ -165,103 +84,9 @@ const FALLBACK_SCENARIOS = [
     actual_link: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
     red_flags: [
       { tool: "ssl" as const, location: "url" as const, description: "Corporate SSL: Microsoft Corporation (EV)" },
-      { tool: "sniffer" as const, location: "url" as const, description: "Authentication Authority: login.microsoftonline.com is actually official." }
+      { tool: "sniffer" as const, location: "url" as const, description: "Authentication Authority: login.microsoftonline.com" }
     ],
     is_real: true
-  },
-  {
-    id: "10",
-    type: "email" as const,
-    difficulty: "Analyst" as const,
-    brand: "FedEx",
-    sender: "tracking@fedex-delivery.com",
-    subject: "Delivery Exception: Action Required",
-    content: "<p>Hello,</p><p>Your package could not be delivered due to an unpaid customs fee of $2.99. Please pay the fee to release your package.</p><p>Track and pay here.</p>",
-    url: "fedex.com/tracking/192847192",
-    actual_link: "https://fedex-delivery.com/pay",
-    red_flags: [
-      { tool: "sniffer" as const, location: "url" as const, description: "Link goes to fedex-delivery.com, not fedex.com." },
-      { tool: "sniffer" as const, location: "sender" as const, description: "Sender is not from fedex.com." }
-    ],
-    is_real: false
-  },
-
-  // --- EXPERT SCENARIOS (Spear-phishing, homoglyphs, highly targeted) ---
-  {
-    id: "11",
-    type: "email" as const,
-    difficulty: "Expert" as const,
-    brand: "HR Department",
-    sender: "sarah.jones@c0mpany.com",
-    subject: "Q3 Bonus Structure - Confidential",
-    content: "<p>Hi Alex,</p><p>Attached is the confidential breakdown for the upcoming Q3 bonus payouts. Please review your allocation and confirm the direct deposit details on page 2.</p><p>Best,<br>Sarah Jones<br>VP of Human Resources</p>",
-    url: "company.com/docs/Q3-Bonus.pdf",
-    actual_link: "https://c0mpany.com/login?doc=Q3-Bonus",
-    red_flags: [
-      { tool: "sniffer" as const, location: "sender" as const, description: "Homoglyph attack: Sender is 'c0mpany.com' (with a zero), not 'company.com'." },
-      { tool: "sentiment" as const, location: "body" as const, description: "Exploits greed/curiosity (Confidential Bonus Structure) to trick employees." }
-    ],
-    is_real: false
-  },
-  {
-    id: "12",
-    type: "website" as const,
-    difficulty: "Expert" as const,
-    brand: "Chase Bank",
-    content: "<div style='background:#005eb8; padding: 20px; color: white; text-align:center;'><h2>CHASE</h2></div><div style='padding: 40px; text-align: center;'><p>Verify your account to restore access.</p><input type='text' placeholder='Username' style='display:block; margin: 10px auto; padding: 10px; width: 80%;' /></div>",
-    url: "secure.chase.com.auth-token.net/login",
-    actual_link: "https://secure.chase.com.auth-token.net/login",
-    red_flags: [
-      { tool: "sniffer" as const, location: "url" as const, description: "Deep subdomain spoofing. The root domain is actually 'auth-token.net'." },
-      { tool: "ssl" as const, location: "url" as const, description: "Valid SSL, but issued to auth-token.net, not JPMorgan Chase." }
-    ],
-    is_real: false
-  },
-  {
-    id: "13",
-    type: "email" as const,
-    difficulty: "Expert" as const,
-    brand: "GitHub",
-    sender: "noreply@github.com",
-    subject: "[GitHub] Please verify your device",
-    content: "<p>A new device is trying to sign in to your GitHub account.</p><p>Device: Mac OS X<br>Location: San Francisco, CA</p><p>If this was you, please click the button below to authorize the device.</p>",
-    url: "github.com/sessions/verify",
-    actual_link: "https://github.com/sessions/verify",
-    red_flags: [
-      { tool: "sniffer" as const, location: "sender" as const, description: "Valid sender: noreply@github.com" },
-      { tool: "sniffer" as const, location: "url" as const, description: "Valid destination: github.com" }
-    ],
-    is_real: true
-  },
-  {
-    id: "14",
-    type: "email" as const,
-    difficulty: "Expert" as const,
-    brand: "CEO (Whaling)",
-    sender: "ceo.name@gmail.com",
-    subject: "Urgent Request: Are you at your desk?",
-    content: "<p>Alex,</p><p>I am stuck in a board meeting right now and need a massive favor. Can you buy $500 in Apple gift cards for a client presentation? I will reimburse you immediately after the meeting.</p><p>Do not reply to this email, just send the codes here. It's urgent.</p>",
-    url: "mailto:ceo.name@gmail.com",
-    actual_link: "mailto:ceo.name@gmail.com",
-    red_flags: [
-      { tool: "sniffer" as const, location: "sender" as const, description: "CEO using a generic @gmail.com address instead of corporate email." },
-      { tool: "sentiment" as const, location: "body" as const, description: "Classic gift card scam: Urgent request from authority figure bypassing normal channels." }
-    ],
-    is_real: false
-  },
-  {
-    id: "15",
-    type: "website" as const,
-    difficulty: "Expert" as const,
-    brand: "Coinbase",
-    content: "<div style='text-align:center; padding: 40px;'><h1 style='color:#1652f0'>coinbase</h1><p>Authorize withdrawal of 0.5 BTC</p><p>Please enter your 12-word seed phrase to confirm identity.</p><textarea style='width: 80%; height: 100px;'></textarea></div>",
-    url: "coinbase-secure.com/wallet",
-    actual_link: "https://coinbase-secure.com/wallet",
-    red_flags: [
-      { tool: "sniffer" as const, location: "url" as const, description: "Fake domain: coinbase-secure.com" },
-      { tool: "sentiment" as const, location: "body" as const, description: "Legitimate services will NEVER ask for your 12-word seed phrase." }
-    ],
-    is_real: false
   }
 ];
 
@@ -338,14 +163,7 @@ export default function PhishingModule() {
   useEffect(() => {
     async function fetchScenarios() {
       try {
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Supabase query timed out")), 5000)
-        );
-        const { data, error } = await Promise.race([
-          supabase.from('phishing_scenarios').select('*'),
-          timeoutPromise
-        ]) as any;
-
+        const { data, error } = await supabase.from('phishing_scenarios').select('*');
         let pool = FALLBACK_SCENARIOS;
         
         if (data && data.length > 0) {
@@ -376,19 +194,11 @@ export default function PhishingModule() {
     
     // Fetch fresh scenarios
     try {
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Supabase query timed out")), 5000)
-      );
-      const { data } = await Promise.race([
-        supabase.from('phishing_scenarios').select('*'),
-        timeoutPromise
-      ]) as any;
-
-      const pool = data && data.length > 0 ? data : FALLBACK_SCENARIOS;
+      const { data } = await supabase.from('phishing_scenarios').select('*');
+      let pool = data && data.length > 0 ? data : FALLBACK_SCENARIOS;
       const selection = [...pool].sort(() => Math.random() - 0.5).slice(0, 2);
       setScenarios(selection);
     } catch (err) {
-      console.error("Failed to fetch fresh scenarios from Supabase, using fallbacks:", err);
       setScenarios(FALLBACK_SCENARIOS.sort(() => Math.random() - 0.5).slice(0, 2));
     } finally {
       setLoading(false);
